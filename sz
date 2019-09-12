@@ -1,0 +1,63 @@
+#!/usr/bin/python
+import os, subprocess, sys
+un = subprocess.run(['whoami'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
+pwd = subprocess.run(['pwd'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
+class Color():
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def size(s, u='B'):
+    unit = ['B','K','M','G','T','P','E']
+    for i in range(1,len(unit)):
+        if float(s) >= float(1024):
+            s = s / 1024
+            u = unit[i]
+    s = ''.join(['{:.2f}'.format(s),u])
+    return s
+
+def get_list_of_files_in_dir(directory):
+    files = []
+    for r,d,f in os.walk(directory):
+        for a in f:
+            files.append(os.path.join(r,a))
+    return files
+
+def sum_files_size(directory):
+    total = size(sum(list(map(lambda a: os.path.getsize(a), get_list_of_files_in_dir(directory)))))
+    return total
+
+def pargs(args=sys.argv[1:]):
+    oargs = []
+    parg = False
+    for arg in args:
+        if arg == '-l':
+            parg = True
+        else:
+            oargs.append(arg)
+    return [oargs,parg]
+
+def plist(di):
+    dirlist = os.listdir(di)
+    for d in dirlist:
+        if os.path.isdir(d):
+            print(Color.WARNING+"{}".format(sum_files_size(di+d))+Color.ENDC+Color.BLUE+"\t {}".format(d)+Color.ENDC)
+        else:
+            print(Color.WARNING+"{}".format(size(os.path.getsize(di+d)))+Color.ENDC+Color.GREEN+"\t {}".format(d)+Color.ENDC)
+
+args = pargs()[0]
+parg = pargs()[1]
+if len(args) == 0:
+    print(Color.BOLD+Color.FAIL+"Total:"+Color.ENDC+" {}".format(sum_files_size('./'))+Color.HEADER+" {}".format(pwd)+Color.ENDC)
+    if parg: plist('./')
+else:
+    for arg in args:
+        if arg[0:2] == '~/': arg.replace('~/','/home/'+un+'/')
+        if arg[:-1] != '/': arg+='/'
+        print(Color.BOLD+Color.FAIL+"Total:"+Color.ENDC+" {}".format(sum_files_size(arg))+Color.HEADER+" {}".format(arg)+Color.ENDC)
+        if parg: plist(arg)
