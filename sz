@@ -52,7 +52,8 @@ def size(oarg,arg,listing):
 pwd = subprocess.run(['pwd'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
 un = subprocess.run(['whoami'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
 listing = realArgs(sys.argv[1:])[1]
-if len(sys.argv[1:]) <= 1: sys.argv.append(pwd)
+if len(sys.argv[1:]) <= 1 and listing: sys.argv.append(pwd)
+elif len(sys.argv[1:]) == 0: sys.argv.append(pwd)
 args = realArgs(sys.argv[1:])[0]
 
 for arg in args:
