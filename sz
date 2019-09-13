@@ -1,18 +1,27 @@
 #!/usr/bin/python
-import os, subprocess, sys
-un = subprocess.run(['whoami'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
-pwd = subprocess.run(['pwd'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
-class Color():
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+import os, sys, subprocess
 
-def size(s, u='B'):
+def realArgs(args):
+    oargs = []
+    parg = False
+    for arg in args:
+        if arg == '-l': parg = True
+        else: oargs.append(arg)
+    return [oargs,parg]
+def paint(color,string):
+    colors = {
+        'pink':'\033[95m',
+        'blue':'\033[94m',
+        'green':'\033[92m',
+        'yellow':'\033[93m',
+        'red':'\033[91m',
+        'end':'\033[0m',
+        'bold':'\033[1m',
+        'underline':'\033[4m'
+    }
+    return(colors[color]+string+colors['end'])
+
+def size_format(s, u='B'):
     unit = ['B','K','M','G','T','P','E']
     for i in range(1,len(unit)):
         if float(s) >= float(1024):
@@ -21,43 +30,38 @@ def size(s, u='B'):
     s = ''.join(['{:.2f}'.format(s),u])
     return s
 
-def get_list_of_files_in_dir(directory):
+def get_files_size_in_dir(arg):
     files = []
-    for r,d,f in os.walk(directory):
+    for r,d,f in os.walk(arg):
         for a in f:
             files.append(os.path.join(r,a))
-    return files
+    return sum(list(map(lambda a: os.path.getsize(a),files)))
 
-def sum_files_size(directory):
-    total = size(sum(list(map(lambda a: os.path.getsize(a), get_list_of_files_in_dir(directory)))))
-    return total
+def size(oarg,arg,listing):
+    if os.path.isdir(arg):
+        print(paint('yellow',size_format(get_files_size_in_dir(arg)))+"\t"+paint('pink',oarg))
+        if listing:
+            for element in list(map(lambda a: [a,arg+a],os.listdir(arg))):
+                if os.path.isdir(element[1]):
+                    print("\t"+paint('yellow',size_format(get_files_size_in_dir(element[1])))+"\t"+paint('blue',element[0]+'/'))
+                else:
+                    print("\t"+paint('yellow',size_format(os.path.getsize(element[1])))+"\t"+paint('green',element[0]))
+    else:
+        print(size_format(os.path.getsize(arg))+"\t"+paint('green',oarg))
 
-def pargs(args=sys.argv[1:]):
-    oargs = []
-    parg = False
-    for arg in args:
-        if arg == '-l':
-            parg = True
-        else:
-            oargs.append(arg)
-    return [oargs,parg]
+pwd = subprocess.run(['pwd'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
+un = subprocess.run(['whoami'], stdout=subprocess.PIPE).stdout.decode('utf-8').replace('\n','')
+listing = realArgs(sys.argv[1:])[1]
+if len(sys.argv[1:]) <= 1: sys.argv.append(pwd)
+args = realArgs(sys.argv[1:])[0]
 
-def plist(di):
-    dirlist = os.listdir(di)
-    for d in dirlist:
-        if os.path.isdir(d):
-            print(Color.WARNING+"{}".format(sum_files_size(di+d))+Color.ENDC+Color.BLUE+"\t {}".format(d)+Color.ENDC)
-        else:
-            print(Color.WARNING+"{}".format(size(os.path.getsize(di+d)))+Color.ENDC+Color.GREEN+"\t {}".format(d)+Color.ENDC)
-
-args = pargs()[0]
-parg = pargs()[1]
-if len(args) == 0:
-    print(Color.BOLD+Color.FAIL+"Total:"+Color.ENDC+" {}".format(sum_files_size('./'))+Color.HEADER+" {}".format(pwd)+Color.ENDC)
-    if parg: plist('./')
-else:
-    for arg in args:
-        if arg[0:2] == '~/': arg.replace('~/','/home/'+un+'/')
-        if arg[:-1] != '/': arg+='/'
-        print(Color.BOLD+Color.FAIL+"Total:"+Color.ENDC+" {}".format(sum_files_size(arg))+Color.HEADER+" {}".format(arg)+Color.ENDC)
-        if parg: plist(arg)
+for arg in args:
+    oarg = arg
+    arg = os.path.abspath(arg)
+    if os.path.exists(arg):
+        if os.path.isdir(arg):
+            if arg[-1] != '/': arg += '/'
+            if oarg[-1] != '/': oarg += '/'
+        size(oarg, arg,listing)
+    else:
+        print(paint('red',"Doesn't Exist ! ==> {}".format(oarg)))
