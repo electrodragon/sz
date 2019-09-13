@@ -41,7 +41,9 @@ def size(oarg,arg,listing):
     if os.path.isdir(arg):
         print(paint('yellow',size_format(get_files_size_in_dir(arg)))+"\t"+paint('pink',oarg))
         if listing:
-            for element in list(map(lambda a: [a,arg+a],os.listdir(arg))):
+            mylist = list(map(lambda a: [a,arg+a],os.listdir(arg)))
+            mylist.sort()
+            for element in mylist:
                 if os.path.isdir(element[1]):
                     print("\t"+paint('yellow',size_format(get_files_size_in_dir(element[1])))+"\t"+paint('blue',element[0]+'/'))
                 else:
